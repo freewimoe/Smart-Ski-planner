@@ -1,0 +1,442 @@
+{
+  "resorts": [
+    {
+      "id": "garmisch",
+      "name": "Garmisch-Partenkirchen",
+      "lat": 47.4917,
+      "lon": 11.0955,
+      "altitude_m": 708,
+      "peak_altitude_m": 2720,
+      "country": "Germany",
+      "region": "Bavaria",
+      "slopes_km": 40,
+      "lifts": 17,
+      "difficulty": {
+        "beginner": 30,
+        "intermediate": 45,
+        "expert": 25
+      },
+      "ticket_prices": {
+        "day_adult": 56,
+        "day_child": 28,
+        "week_adult": 280,
+        "week_child": 140,
+        "season": 850
+      },
+      "features": {
+        "snow_cannons_km": 15,
+        "night_skiing": false,
+        "terrain_park": true,
+        "cross_country_km": 28,
+        "glacier": true
+      },
+      "ratings": {
+        "apres_ski": 4,
+        "family_friendly": 5,
+        "snow_reliability": 4,
+        "value_for_money": 3
+      },
+      "media": {
+        "webcam_urls": [
+          "https://www.foto-webcam.eu/webcam/zugspitze/"
+        ],
+        "piste_map_url": "https://www.gapa.de/pistenplan",
+        "website": "https://www.gapa.de"
+      },
+      "contact": {
+        "phone": "+49 8821 180700",
+        "email": "info@gapa.de"
+      }
+    },
+    {
+      "id": "kitzbuehel",
+      "name": "Kitzbuehel",
+      "lat": 47.4464,
+      "lon": 12.3909,
+      "altitude_m": 762,
+      "peak_altitude_m": 2000,
+      "country": "Austria",
+      "region": "Tyrol",
+      "slopes_km": 233,
+      "lifts": 57,
+      "difficulty": {
+        "beginner": 25,
+        "intermediate": 45,
+        "expert": 30
+      },
+      "ticket_prices": {
+        "day_adult": 72,
+        "day_child": 36,
+        "week_adult": 380,
+        "week_child": 190,
+        "season": 1100
+      },
+      "features": {
+        "snow_cannons_km": 180,
+        "night_skiing": true,
+        "terrain_park": true,
+        "cross_country_km": 60,
+        "glacier": false
+      },
+      "ratings": {
+        "apres_ski": 5,
+        "family_friendly": 4,
+        "snow_reliability": 4,
+        "value_for_money": 3
+      },
+      "media": {
+        "webcam_urls": [
+          "https://www.kitzbuehel.com/de/live/webcams"
+        ],
+        "piste_map_url": "https://www.kitzbuehel.com/pistenplan",
+        "website": "https://www.kitzbuehel.com"
+      },
+      "contact": {
+        "phone": "+43 5356 66660",
+        "email": "info@kitzbuehel.com"
+      }
+    },
+    {
+      "id": "st-anton",
+      "name": "St. Anton am Arlberg",
+      "lat": 47.1296,
+      "lon": 10.2682,
+      "altitude_m": 1304,
+      "peak_altitude_m": 2811,
+      "country": "Austria",
+      "region": "Tyrol",
+      "slopes_km": 305,
+      "lifts": 88,
+      "difficulty": {
+        "beginner": 15,
+        "intermediate": 45,
+        "expert": 40
+      },
+      "ticket_prices": {
+        "day_adult": 74,
+        "day_child": 45,
+        "week_adult": 390,
+        "week_child": 235,
+        "season": 1150
+      },
+      "features": {
+        "snow_cannons_km": 90,
+        "night_skiing": false,
+        "terrain_park": true,
+        "cross_country_km": 40,
+        "glacier": false
+      },
+      "ratings": {
+        "apres_ski": 5,
+        "family_friendly": 3,
+        "snow_reliability": 5,
+        "value_for_money": 3
+      },
+      "media": {
+        "webcam_urls": [
+          "https://www.stantonamarlberg.com/de/webcams"
+        ],
+        "piste_map_url": "https://www.stantonamarlberg.com/pistenplan",
+        "website": "https://www.stantonamarlberg.com"
+      },
+      "contact": {
+        "phone": "+43 5446 22690",
+        "email": "info@stantonamarlberg.com"
+      }
+    },
+    {
+      "id": "ischgl",
+      "name": "Ischgl",
+      "lat": 47.0112,
+      "lon": 10.2905,
+      "altitude_m": 1377,
+      "peak_altitude_m": 2872,
+      "country": "Austria",
+      "region": "Tyrol",
+      "slopes_km": 239,
+      "lifts": 45,
+      "difficulty": {
+        "beginner": 20,
+        "intermediate": 55,
+        "expert": 25
+      },
+      "ticket_prices": {
+        "day_adult": 72,
+        "day_child": 43,
+        "week_adult": 375,
+        "week_child": 225,
+        "season": 1080
+      },
+      "features": {
+        "snow_cannons_km": 150,
+        "night_skiing": false,
+        "terrain_park": true,
+        "cross_country_km": 25,
+        "glacier": false
+      },
+      "ratings": {
+        "apres_ski": 5,
+        "family_friendly": 3,
+        "snow_reliability": 5,
+        "value_for_money": 3
+      },
+      "media": {
+        "webcam_urls": [
+          "https://www.ischgl.com/de/webcams"
+        ],
+        "piste_map_url": "https://www.ischgl.com/pistenplan",
+        "website": "https://www.ischgl.com"
+      },
+      "contact": {
+        "phone": "+43 5444 52660",
+        "email": "info@ischgl.com"
+      }
+    },
+    {
+      "id": "winterberg",
+      "name": "Winterberg",
+      "lat": 51.1965,
+      "lon": 8.5258,
+      "altitude_m": 668,
+      "peak_altitude_m": 842,
+      "country": "Germany",
+      "region": "North Rhine-Westphalia",
+      "slopes_km": 27.5,
+      "lifts": 24,
+      "difficulty": {
+        "beginner": 50,
+        "intermediate": 40,
+        "expert": 10
+      },
+      "ticket_prices": {
+        "day_adult": 42,
+        "day_child": 32,
+        "week_adult": 195,
+        "week_child": 150,
+        "season": 450
+      },
+      "features": {
+        "snow_cannons_km": 25,
+        "night_skiing": true,
+        "terrain_park": true,
+        "cross_country_km": 80,
+        "glacier": false
+      },
+      "ratings": {
+        "apres_ski": 3,
+        "family_friendly": 5,
+        "snow_reliability": 2,
+        "value_for_money": 4
+      },
+      "media": {
+        "webcam_urls": [
+          "https://www.winterberg.de/webcams"
+        ],
+        "piste_map_url": "https://www.winterberg.de/pistenplan",
+        "website": "https://www.winterberg.de"
+      },
+      "contact": {
+        "phone": "+49 2981 92500",
+        "email": "info@winterberg.de"
+      }
+    },
+    {
+      "id": "feldberg",
+      "name": "Feldberg",
+      "lat": 47.8596,
+      "lon": 8.0039,
+      "altitude_m": 950,
+      "peak_altitude_m": 1493,
+      "country": "Germany",
+      "region": "Baden-Wuerttemberg",
+      "slopes_km": 63,
+      "lifts": 38,
+      "difficulty": {
+        "beginner": 40,
+        "intermediate": 45,
+        "expert": 15
+      },
+      "ticket_prices": {
+        "day_adult": 44,
+        "day_child": 30,
+        "week_adult": 200,
+        "week_child": 140,
+        "season": 520
+      },
+      "features": {
+        "snow_cannons_km": 20,
+        "night_skiing": true,
+        "terrain_park": false,
+        "cross_country_km": 120,
+        "glacier": false
+      },
+      "ratings": {
+        "apres_ski": 3,
+        "family_friendly": 5,
+        "snow_reliability": 3,
+        "value_for_money": 4
+      },
+      "media": {
+        "webcam_urls": [
+          "https://www.liftverbund-feldberg.de/webcams"
+        ],
+        "piste_map_url": "https://www.liftverbund-feldberg.de/pistenplan",
+        "website": "https://www.liftverbund-feldberg.de"
+      },
+      "contact": {
+        "phone": "+49 7676 92110",
+        "email": "info@liftverbund-feldberg.de"
+      }
+    },
+    {
+      "id": "zermatt",
+      "name": "Zermatt",
+      "lat": 46.0207,
+      "lon": 7.7491,
+      "altitude_m": 1608,
+      "peak_altitude_m": 3883,
+      "country": "Switzerland",
+      "region": "Valais",
+      "slopes_km": 360,
+      "lifts": 52,
+      "difficulty": {
+        "beginner": 20,
+        "intermediate": 50,
+        "expert": 30
+      },
+      "ticket_prices": {
+        "day_adult": 92,
+        "day_child": 46,
+        "week_adult": 480,
+        "week_child": 240,
+        "season": 1450
+      },
+      "features": {
+        "snow_cannons_km": 50,
+        "night_skiing": false,
+        "terrain_park": true,
+        "cross_country_km": 12,
+        "glacier": true
+      },
+      "ratings": {
+        "apres_ski": 4,
+        "family_friendly": 4,
+        "snow_reliability": 5,
+        "value_for_money": 2
+      },
+      "media": {
+        "webcam_urls": [
+          "https://www.zermatt.ch/webcams"
+        ],
+        "piste_map_url": "https://www.zermatt.ch/pistenplan",
+        "website": "https://www.zermatt.ch"
+      },
+      "contact": {
+        "phone": "+41 27 966 8100",
+        "email": "info@zermatt.ch"
+      }
+    },
+    {
+      "id": "davos",
+      "name": "Davos",
+      "lat": 46.8027,
+      "lon": 9.8287,
+      "altitude_m": 1560,
+      "peak_altitude_m": 2844,
+      "country": "Switzerland",
+      "region": "Graubuenden",
+      "slopes_km": 269,
+      "lifts": 57,
+      "difficulty": {
+        "beginner": 25,
+        "intermediate": 50,
+        "expert": 25
+      },
+      "ticket_prices": {
+        "day_adult": 79,
+        "day_child": 32,
+        "week_adult": 395,
+        "week_child": 160,
+        "season": 1200
+      },
+      "features": {
+        "snow_cannons_km": 60,
+        "night_skiing": true,
+        "terrain_park": true,
+        "cross_country_km": 100,
+        "glacier": false
+      },
+      "ratings": {
+        "apres_ski": 4,
+        "family_friendly": 4,
+        "snow_reliability": 4,
+        "value_for_money": 3
+      },
+      "media": {
+        "webcam_urls": [
+          "https://www.davos.ch/webcams"
+        ],
+        "piste_map_url": "https://www.davos.ch/pistenplan",
+        "website": "https://www.davos.ch"
+      },
+      "contact": {
+        "phone": "+41 81 415 2121",
+        "email": "info@davos.ch"
+      }
+    },
+    {
+      "id": "chamonix",
+      "name": "Chamonix",
+      "lat": 45.9237,
+      "lon": 6.8694,
+      "altitude_m": 1035,
+      "peak_altitude_m": 3842,
+      "country": "France",
+      "region": "Haute-Savoie",
+      "slopes_km": 119,
+      "lifts": 67,
+      "difficulty": {
+        "beginner": 15,
+        "intermediate": 40,
+        "expert": 45
+      },
+      "ticket_prices": {
+        "day_adult": 68,
+        "day_child": 58,
+        "week_adult": 340,
+        "week_child": 290,
+        "season": 1050
+      },
+      "features": {
+        "snow_cannons_km": 30,
+        "night_skiing": false,
+        "terrain_park": true,
+        "cross_country_km": 42,
+        "glacier": true
+      },
+      "ratings": {
+        "apres_ski": 4,
+        "family_friendly": 3,
+        "snow_reliability": 5,
+        "value_for_money": 3
+      },
+      "media": {
+        "webcam_urls": [
+          "https://www.chamonix.com/webcams"
+        ],
+        "piste_map_url": "https://www.chamonix.com/pistenplan",
+        "website": "https://www.chamonix.com"
+      },
+      "contact": {
+        "phone": "+33 4 50 53 0024",
+        "email": "info@chamonix.com"
+      }
+    }
+  ],
+  "metadata": {
+    "version": "2.0",
+    "last_updated": "2026-01-15",
+    "source": "manual_research",
+    "currency": "EUR"
+  }
+}
