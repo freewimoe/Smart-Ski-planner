@@ -3,7 +3,12 @@
 Ein "Smart Tool" zur Planung des Skiurlaubs 2026.
 
 ## Features
-- **Distanz-Check**: Findet Skigebiete im Umkreis von X km (Standard 400km).
+- **Interactive Map Input**: Wähle deinen Startpunkt per Klick auf die Karte (OpenStreetMap/Folium).
+- **User Login & Persistence**: 
+  - Login/Register System.
+  - Speichert gesuchte Urlaubsziele in einer SQLite Datenbank.
+- **Visual Routes**: Zeigt Linien von deinem Startpunkt zu allen möglichen Resorts.
+- **Distanz-Check**: Findet Skigebiete im Umkreis von X km.
 - **ML Snow Prediction**: 
   - Standard: Trainiert auf synthetischen Daten.
   - **NEU: Real Data Mode**: Kann **Open-Meteo Archive API** nutzen, um auf echten historischen Schneedaten der letzten 3 Jahre zu trainieren!

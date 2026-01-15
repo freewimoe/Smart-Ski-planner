@@ -4,3 +4,6 @@ numpy
 scikit-learn
 geopy
 requests
+folium
+streamlit-folium
+bcrypt
