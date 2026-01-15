@@ -2,10 +2,12 @@ import streamlit as st
 import pandas as pd
 import datetime
 import folium
+import streamlit.components.v1 as components
 from streamlit_folium import st_folium
-from utils import get_ski_resorts, filter_resorts_by_distance, generate_hotel_options
+from utils import get_ski_resorts, filter_resorts_by_distance, generate_hotel_options, geocode_address, get_wiki_summary
 from model import load_or_train_model, predict_snow_quality
 from db import init_db, login_user, register_user, save_trip, get_user_trips
+from weather import get_live_weather
 
 # Initialize DB
 init_db()
@@ -78,9 +80,31 @@ if 'map_lon' not in st.session_state:
 
 # 1. Map for Location Selection
 st.subheader("1. Select Your Start Location")
-st.info("Click on the map to set your starting point.")
 
-m_start = folium.Map(location=[st.session_state['map_lat'], st.session_state['map_lon']], zoom_start=6)
+# Address Search Form
+with st.expander("📍 Search by Address", expanded=True):
+    c1, c2, c3, c4 = st.columns([3, 1, 1, 2])
+    street = c1.text_input("Street", placeholder="Main St")
+    number = c2.text_input("No", placeholder="1")
+    zip_code = c3.text_input("Zip", placeholder="10115")
+    city = c4.text_input("City", placeholder="Berlin")
+    
+    if st.button("Find Address"):
+        if street and city:
+            coords = geocode_address(street, number, zip_code, city)
+            if coords:
+                st.session_state['map_lat'] = coords[0]
+                st.session_state['map_lon'] = coords[1]
+                st.success(f"Found: {street} {number}, {city} ({coords[0]:.4f}, {coords[1]:.4f})")
+                st.rerun()
+            else:
+                st.error("Address not found.")
+        else:
+            st.warning("Please enter at least Street and City.")
+
+st.info("Or click on the map / drag the map to adjust.")
+
+m_start = folium.Map(location=[st.session_state['map_lat'], st.session_state['map_lon']], zoom_start=9)
 folium.Marker(
     [st.session_state['map_lat'], st.session_state['map_lon']], 
     popup="Your Start", 
@@ -89,7 +113,7 @@ folium.Marker(
 ).add_to(m_start)
 
 # Capture Map Click
-output = st_folium(m_start, height=300, width="100%")
+output = st_folium(m_start, height=300, width="100%", key="starter_map")
 
 if output['last_clicked']:
     st.session_state['map_lat'] = output['last_clicked']['lat']
@@ -202,7 +226,7 @@ else:
     
     # Using new st.dataframe selection (Streamlit 1.35+)
     selection = st.dataframe(
-        filtered_resorts[['name', 'country', 'distance_km', 'altitude_m', 'predicted_snow_cm']],
+        filtered_resorts[['name', 'country', 'distance_km', 'altitude_m', 'slopes_km', 'predicted_snow_cm']],
         use_container_width=True,
         on_select="rerun",
         selection_mode="single-row"
@@ -211,35 +235,74 @@ else:
     selected_row_index = selection.selection.rows
     
     selected_resort_name = None
-    if selected_row_index:
-        selected_resort_name = filtered_resorts.iloc[selected_row_index[0]]['name']
-    else:
-        # Default to first if nothing selected
-        if not filtered_resorts.empty:
-             selected_resort_name = filtered_resorts.iloc[0]['name']
-
-    # 3. Hotel Finder
-    st.subheader(f"3. Hotel Recommendations for: {selected_resort_name}")
+    selected_resort_data = None
     
+    if selected_row_index:
+        selected_resort_data = filtered_resorts.iloc[selected_row_index[0]]
+        selected_resort_name = selected_resort_data['name']
+    
+    # 3. Details & Hotels
     if selected_resort_name:
-        # Save Trip Button (Persistence)
-        if st.button("💾 Save this Trip Search"):
-            save_trip(st.session_state['user_id'], user_lat, user_lon, selected_resort_name, start_date)
-            st.toast(f"Trip to {selected_resort_name} saved!")
-            
-        hotels_df = generate_hotel_options(selected_resort_name, adults, children, rooms)
+        st.subheader(f"3. Details for: {selected_resort_name}")
         
-        # Display Hotels
-        for i, hotel in hotels_df.iterrows():
-            with st.expander(f"{hotel['hotel_name']} - €{hotel['price_total']}"):
-                col_h1, col_h2 = st.columns([3, 1])
-                with col_h1:
-                    st.write(f"**Stars:** {'⭐' * int(hotel['stars'])}")
-                    st.write(f"**Family Friendly:** {'✅' if hotel['family_friendly'] else '❌'}")
-                    st.write(f"**Available Rooms:** {hotel['rooms_available']}")
-                with col_h2:
-                    st.link_button("Check Booking.com", hotel['booking_url'])
-                    st.button("Mock Book", key=f"btn_{i}")
+        # Save Trip Button (Persistence)
+        col_save, col_info = st.columns([1, 4])
+        with col_save:
+            if st.button("💾 Save this Trip"):
+                save_trip(st.session_state['user_id'], user_lat, user_lon, selected_resort_name, start_date)
+                st.toast(f"Trip to {selected_resort_name} saved!")
+        
+        # Tabs for different Info Categories
+        tab_hotels, tab_weather, tab_info, tab_map = st.tabs(["🏨 Hotels", "🌤️ Live Weather", "ℹ️ Resort Info", "🗺️ Windy Map"])
+        
+        with tab_hotels:
+            hotels_df = generate_hotel_options(selected_resort_name, adults, children, rooms)
+            for i, hotel in hotels_df.iterrows():
+                with st.expander(f"{hotel['hotel_name']} - €{hotel['price_total']}"):
+                    col_h1, col_h2 = st.columns([3, 1])
+                    with col_h1:
+                        st.write(f"**Stars:** {'⭐' * int(hotel['stars'])}")
+                        st.write(f"**Family Friendly:** {'✅' if hotel['family_friendly'] else '❌'}")
+                        st.write(f"**Available Rooms:** {hotel['rooms_available']}")
+                    with col_h2:
+                        st.link_button("Check Booking.com", hotel['booking_url'])
+                        st.button("Mock Book", key=f"btn_{i}")
+        
+        with tab_weather:
+            st.markdown("### Current Weather & 7-Day Forecast")
+            lat = selected_resort_data['lat']
+            lon = selected_resort_data['lon']
+            
+            with st.spinner("Fetching live weather..."):
+                current_w, df_forecast = get_live_weather(lat, lon)
+            
+            if current_w:
+                w1, w2, w3 = st.columns(3)
+                w1.metric("Temperature", f"{current_w['temp']} °C")
+                w2.metric("Wind Speed", f"{current_w['wind']} km/h")
+                w3.metric("Current Snow Depth", f"{current_w['snow_depth'] * 100:.1f} cm") # m to cm
+                
+                st.write("#### 7-Day Forecast")
+                st.dataframe(df_forecast, use_container_width=True)
+            else:
+                st.error("Could not fetch weather data.")
+                
+        with tab_info:
+            st.markdown(f"### About {selected_resort_name}")
+            with st.spinner("Fetching Wikipedia summary..."):
+                wiki_text = get_wiki_summary(selected_resort_name)
+            st.info(wiki_text)
+            
+            st.markdown("### Stats")
+            st.write(f"**Altitude:** {selected_resort_data['altitude_m']} m")
+            st.write(f"**Slopes:** {selected_resort_data.get('slopes_km', 'N/A')} km")
+            st.write(f"**Lifts:** {selected_resort_data.get('lifts', 'N/A')}")
+            
+        with tab_map:
+            st.markdown("### Live Wind & Weather Map (Windy.com)")
+            # Embedding Windy.com iframe
+            windy_url = f"https://embed.windy.com/embed2.html?lat={lat}&lon={lon}&detailLat={lat}&detailLon={lon}&width=650&height=450&zoom=11&level=surface&overlay=wind&product=ecmwf&menu=&message=&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=&metricWind=default&metricTemp=default&radarRange=-1"
+            components.iframe(windy_url, height=500)
 
 # Show saved trips in Sidebar
 st.sidebar.markdown("---")
