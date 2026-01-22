@@ -1,11 +1,12 @@
 """
-Smart Ski Vacation Planner 2026 - Level 2
-Enhanced with preferences, budget planning, and resort comparison.
+Smart Ski Vacation Planner 2026 - Level 2.5
+Enhanced with real snow conditions, accommodation pricing, and advanced comparison.
 """
 
 import streamlit as st
 import pandas as pd
 import datetime
+from datetime import date, timedelta
 import folium
 import streamlit.components.v1 as components
 from streamlit_folium import st_folium
@@ -22,7 +23,7 @@ from db import (
     add_favorite, remove_favorite, is_favorite, get_user_favorites,
     get_resort_reviews, get_resort_rating_summary, submit_review
 )
-from weather import get_live_weather
+from weather import get_live_weather, get_enhanced_snow_data, format_snow_display
 
 # Level 2 imports
 from preferences import UserPreferences, ResortMatcher
@@ -30,7 +31,21 @@ from budget import (
     TravelParty, TripDetails, BudgetOptions,
     TransportMode, get_budget_summary
 )
-from compare import ResortComparator
+from compare import ResortComparator, create_comprehensive_comparison
+
+# Level 2.5 imports - Snow and Accommodation
+try:
+    from snow_api import SnowConditionAggregator
+    from snow_conditions import get_avalanche_risk_label, get_avalanche_risk_color
+    SNOW_API_AVAILABLE = True
+except ImportError:
+    SNOW_API_AVAILABLE = False
+
+try:
+    from accommodation import AccommodationSearch, TravelGroup, get_accommodation_url
+    ACCOMMODATION_AVAILABLE = True
+except ImportError:
+    ACCOMMODATION_AVAILABLE = False
 
 # Initialize DB
 init_db()
@@ -373,29 +388,122 @@ else:
             compare_resorts.append(details)
 
         with st.expander("📊 Vergleichsansicht", expanded=True):
-            comparator = ResortComparator(compare_resorts)
+            # Tabs for different comparison views
+            comp_tab1, comp_tab2, comp_tab3 = st.tabs(["Uebersicht", "Schneebedingungen", "Preise & Unterkunft"])
 
-            # Comparison Table
-            st.write("**Detailvergleich**")
-            comparison_table = comparator.get_comparison_table()
-            st.dataframe(comparison_table, use_container_width=True)
+            with comp_tab1:
+                comparator = ResortComparator(compare_resorts, fetch_live_data=SNOW_API_AVAILABLE)
 
-            # Winner
-            result = comparator.calculate_winner()
-            st.success(f"🏆 **Gesamtsieger: {result['winner']}** "
-                      f"(Score: {result['scores'][result['winner']]:.0f}/100, "
-                      f"Vorsprung: +{result['margin']:.0f})")
+                # Comparison Table
+                st.write("**Detailvergleich**")
+                comparison_table = comparator.get_comparison_table()
+                st.dataframe(comparison_table, use_container_width=True)
 
-            # Pros/Cons
-            cols = st.columns(len(compare_resorts))
-            for i, (col, resort) in enumerate(zip(cols, compare_resorts)):
-                with col:
-                    st.write(f"**{resort['name']}**")
-                    pros_cons = comparator.get_pros_cons(resort['name'])
-                    for pro in pros_cons['pros']:
-                        st.write(f"✅ {pro}")
-                    for con in pros_cons['cons']:
-                        st.write(f"⚠️ {con}")
+                # Winner
+                result = comparator.calculate_winner()
+                st.success(f"🏆 **Gesamtsieger: {result['winner']}** "
+                          f"(Score: {result['scores'][result['winner']]:.0f}/100, "
+                          f"Vorsprung: +{result['margin']:.0f})")
+
+                # Pros/Cons
+                cols = st.columns(len(compare_resorts))
+                for i, (col, resort) in enumerate(zip(cols, compare_resorts)):
+                    with col:
+                        st.write(f"**{resort['name']}**")
+                        pros_cons = comparator.get_pros_cons(resort['name'])
+                        for pro in pros_cons['pros']:
+                            st.write(f"✅ {pro}")
+                        for con in pros_cons['cons']:
+                            st.write(f"⚠️ {con}")
+
+            with comp_tab2:
+                st.write("**Echte Schneebedingungen im Vergleich**")
+
+                if SNOW_API_AVAILABLE and comparator.snow_conditions:
+                    # Snow comparison table
+                    snow_rows = []
+                    for name, condition in comparator.snow_conditions.items():
+                        snow_rows.append({
+                            'Resort': name,
+                            'Score': f"{condition.overall_score:.0f}/100",
+                            'Schnee Tal': f"{condition.snow_depth.base_depth_cm:.0f} cm",
+                            'Schnee Berg': f"{condition.snow_depth.summit_depth_cm:.0f} cm",
+                            'Neuschnee 7d': f"{condition.fresh_snow.last_7days_cm:.0f} cm",
+                            'Lawinen': get_avalanche_risk_label(condition.avalanche.risk_level),
+                            'Qualitaet': condition.snow_quality_rating,
+                            'Pisten offen': f"{condition.piste.slope_availability:.0f}%"
+                        })
+                    st.dataframe(pd.DataFrame(snow_rows), use_container_width=True)
+
+                    # Best findings
+                    st.markdown("---")
+                    conditions_list = list(comparator.snow_conditions.values())
+                    best_snow = max(conditions_list, key=lambda c: c.snow_depth.average_depth_cm)
+                    best_fresh = max(conditions_list, key=lambda c: c.fresh_snow.last_7days_cm)
+                    safest = min(conditions_list, key=lambda c: c.avalanche.risk_level.value if c.avalanche.risk_level.value > 0 else 10)
+
+                    finding_cols = st.columns(3)
+                    finding_cols[0].info(f"Meiste Schnee: **{best_snow.resort_name}**")
+                    finding_cols[1].info(f"Meiste Neuschnee: **{best_fresh.resort_name}**")
+                    finding_cols[2].info(f"Sicherster: **{safest.resort_name}**")
+                else:
+                    st.warning("Erweiterte Schneebedingungen nicht verfuegbar. Aktiviere die Snow API.")
+
+            with comp_tab3:
+                st.write("**Preis- und Unterkunftsvergleich**")
+
+                # Ski pass prices
+                st.markdown("##### Skipass-Preise")
+                pass_rows = []
+                for resort in compare_resorts:
+                    tp = resort.get('ticket_prices', {})
+                    pass_rows.append({
+                        'Resort': resort['name'],
+                        'Tagespass': f"{tp.get('day_adult', 55)} EUR",
+                        'Wochenpass': f"{tp.get('week_adult', 290)} EUR",
+                        'Kind/Tag': f"{tp.get('day_child', 30)} EUR",
+                        'Kind/Woche': f"{tp.get('week_child', 160)} EUR"
+                    })
+                st.dataframe(pd.DataFrame(pass_rows), use_container_width=True)
+
+                # Accommodation prices
+                if ACCOMMODATION_AVAILABLE:
+                    st.markdown("##### Unterkunftskosten (Schaetzung)")
+
+                    accom_search = AccommodationSearch()
+                    checkin = date.today() + timedelta(days=30)
+                    checkout = checkin + timedelta(days=nights if nights > 0 else 7)
+                    travel_group = TravelGroup(adults=adults, children=children, rooms=rooms)
+
+                    accom_rows = []
+                    for resort in compare_resorts:
+                        result = accom_search.search(resort, checkin, checkout, travel_group)
+                        accom_rows.append({
+                            'Resort': resort['name'],
+                            'Budget': f"{result.price_range['min']:.0f} EUR",
+                            'Standard': f"{result.price_range['average']:.0f} EUR",
+                            'Premium': f"{result.price_range['max']:.0f} EUR",
+                            'Pro Nacht': f"{result.price_range['average']/nights:.0f} EUR" if nights > 0 else "N/A"
+                        })
+                    st.dataframe(pd.DataFrame(accom_rows), use_container_width=True)
+
+                    # Cheapest resort
+                    cheapest = min(accom_rows, key=lambda x: float(x['Standard'].replace(' EUR', '')))
+                    st.success(f"Guenstigste Unterkunft: **{cheapest['Resort']}** ({cheapest['Standard']})")
+
+                    # Booking links
+                    st.markdown("##### Direkt buchen")
+                    link_cols = st.columns(len(compare_resorts))
+                    for i, (col, resort) in enumerate(zip(link_cols, compare_resorts)):
+                        with col:
+                            booking_url = get_accommodation_url(
+                                resort['name'],
+                                checkin, checkout,
+                                adults, children, rooms
+                            )
+                            st.link_button(f"Booking.com: {resort['name']}", booking_url)
+                else:
+                    st.info("Unterkunfts-Modul nicht verfuegbar.")
 
     # =============================================================================
     # RESORT DETAILS
@@ -433,8 +541,8 @@ else:
                 st.toast(f"Trip nach {selected_resort_name} gespeichert!")
 
         # Tabs for different info
-        tab_hotels, tab_budget, tab_weather, tab_info, tab_reviews, tab_map = st.tabs([
-            "🏨 Hotels", "💰 Budget", "🌤️ Wetter", "ℹ️ Info", "⭐ Bewertungen", "🗺️ Windy"
+        tab_hotels, tab_accom, tab_budget, tab_weather, tab_info, tab_reviews, tab_map = st.tabs([
+            "🏨 Hotels", "🏠 Unterkunft", "💰 Budget", "❄️ Schnee & Wetter", "ℹ️ Info", "⭐ Bewertungen", "🗺️ Windy"
         ])
 
         with tab_hotels:
@@ -448,6 +556,118 @@ else:
                         st.write(f"**Verfuegbare Zimmer:** {hotel['rooms_available']}")
                     with col_h2:
                         st.link_button("Booking.com", hotel['booking_url'])
+
+        # =============================================================================
+        # ACCOMMODATION TAB (Level 2.5 - NEW)
+        # =============================================================================
+
+        with tab_accom:
+            st.markdown("### 🏠 Unterkunftssuche")
+
+            if ACCOMMODATION_AVAILABLE:
+                st.markdown(f"Finde die beste Unterkunft in **{selected_resort_name}**")
+
+                # Search parameters
+                accom_col1, accom_col2 = st.columns(2)
+
+                with accom_col1:
+                    st.write("**Reisedaten:**")
+                    accom_checkin = st.date_input(
+                        "Check-in",
+                        value=start_date,
+                        key="accom_checkin"
+                    )
+                    accom_checkout = st.date_input(
+                        "Check-out",
+                        value=end_date,
+                        key="accom_checkout"
+                    )
+                    accom_nights = (accom_checkout - accom_checkin).days
+
+                with accom_col2:
+                    st.write("**Reisegruppe:**")
+                    accom_adults = st.number_input("Erwachsene", 1, 10, adults, key="accom_adults")
+                    accom_children = st.number_input("Kinder", 0, 10, children, key="accom_children")
+                    accom_rooms = st.number_input("Zimmer/Einheiten", 1, 5, rooms, key="accom_rooms")
+
+                # Create search
+                accom_search = AccommodationSearch()
+                travel_group = TravelGroup(
+                    adults=accom_adults,
+                    children=accom_children,
+                    rooms=accom_rooms
+                )
+
+                search_result = accom_search.search(
+                    resort_full_details,
+                    accom_checkin,
+                    accom_checkout,
+                    travel_group
+                )
+
+                st.markdown("---")
+
+                # Price estimates
+                st.markdown("#### Preisschaetzungen")
+                st.caption(f"Fuer {accom_nights} Naechte, {accom_adults + accom_children} Personen")
+
+                price_cols = st.columns(3)
+                price_cols[0].metric(
+                    "Budget",
+                    f"{search_result.price_range['min']:.0f} EUR",
+                    f"{search_result.price_range['min']/accom_nights:.0f} EUR/Nacht"
+                )
+                price_cols[1].metric(
+                    "Standard",
+                    f"{search_result.price_range['average']:.0f} EUR",
+                    f"{search_result.price_range['average']/accom_nights:.0f} EUR/Nacht"
+                )
+                price_cols[2].metric(
+                    "Premium",
+                    f"{search_result.price_range['max']:.0f} EUR",
+                    f"{search_result.price_range['max']/accom_nights:.0f} EUR/Nacht"
+                )
+
+                # Accommodation options
+                st.markdown("#### Unterkunftsoptionen")
+
+                for accom in search_result.accommodations:
+                    with st.container():
+                        ac_col1, ac_col2, ac_col3 = st.columns([3, 1, 1])
+                        with ac_col1:
+                            st.write(f"**{accom.name}**")
+                            st.caption(f"Typ: {accom.accommodation_type}")
+                            if accom.ski_in_out:
+                                st.caption("Ski-in/Ski-out verfuegbar")
+                        with ac_col2:
+                            st.metric("Preis", f"{accom.price_total:.0f} EUR")
+                        with ac_col3:
+                            st.metric("Bewertung", f"{accom.rating}/10")
+                        st.markdown("---")
+
+                # Direct booking link
+                st.markdown("#### Jetzt suchen auf Booking.com")
+
+                booking_url = get_accommodation_url(
+                    selected_resort_name,
+                    accom_checkin,
+                    accom_checkout,
+                    accom_adults,
+                    accom_children,
+                    accom_rooms
+                )
+
+                st.link_button(
+                    f"Alle Unterkuenfte in {selected_resort_name} anzeigen",
+                    booking_url,
+                    use_container_width=True
+                )
+
+                st.caption("Die Preise sind Schaetzungen. Aktuelle Preise auf Booking.com pruefen.")
+
+            else:
+                st.warning("Unterkunfts-Modul nicht verfuegbar.")
+                st.info("Bitte stelle sicher, dass accommodation.py vorhanden ist.")
 
         # =============================================================================
         # BUDGET TAB (Level 2 - NEW)
@@ -558,9 +778,92 @@ else:
                     st.info(tip)
 
         with tab_weather:
-            st.markdown("### Aktuelles Wetter & 7-Tage Vorhersage")
+            st.markdown("### Schneebedingungen & Wetter")
             lat = selected_resort_data['lat']
             lon = selected_resort_data['lon']
+
+            # Enhanced snow data (Level 2.5)
+            if SNOW_API_AVAILABLE:
+                with st.spinner("Lade erweiterte Schneebedingungen..."):
+                    snow_data = get_enhanced_snow_data(resort_full_details)
+
+                if snow_data and snow_data.get('is_enhanced'):
+                    # Overall score
+                    score = snow_data.get('overall_score', 0)
+                    summary = snow_data.get('condition_summary', '')
+                    quality = snow_data.get('snow_quality_rating', '')
+
+                    st.markdown(f"#### Bewertung: **{score:.0f}/100** - {summary}")
+                    st.caption(f"Schneequalitaet: {quality}")
+
+                    # Snow depths
+                    st.markdown("##### Schneehoehen")
+                    snow_cols = st.columns(3)
+                    snow_cols[0].metric(
+                        f"Tal ({snow_data.get('base_altitude_m', 0)}m)",
+                        f"{snow_data.get('snow_depth_base_cm', 0):.0f} cm"
+                    )
+                    snow_cols[1].metric(
+                        f"Mitte ({snow_data.get('mid_altitude_m', 0)}m)",
+                        f"{snow_data.get('snow_depth_mid_cm', 0):.0f} cm"
+                    )
+                    snow_cols[2].metric(
+                        f"Berg ({snow_data.get('summit_altitude_m', 0)}m)",
+                        f"{snow_data.get('snow_depth_summit_cm', 0):.0f} cm"
+                    )
+
+                    # Fresh snow
+                    st.markdown("##### Neuschnee")
+                    fresh_cols = st.columns(4)
+                    fresh_cols[0].metric("24h", f"{snow_data.get('fresh_snow_24h_cm', 0):.0f} cm")
+                    fresh_cols[1].metric("48h", f"{snow_data.get('fresh_snow_48h_cm', 0):.0f} cm")
+                    fresh_cols[2].metric("7 Tage", f"{snow_data.get('fresh_snow_7days_cm', 0):.0f} cm")
+                    fresh_cols[3].metric("Trend", snow_data.get('snowfall_trend', 'stable').replace('_', ' ').title())
+
+                    # Forecast
+                    st.markdown("##### Schneefall-Vorhersage")
+                    forecast_cols = st.columns(3)
+                    forecast_cols[0].metric("Naechste 24h", f"{snow_data.get('forecast_snow_24h_cm', 0):.0f} cm")
+                    forecast_cols[1].metric("Naechste 48h", f"{snow_data.get('forecast_snow_48h_cm', 0):.0f} cm")
+                    forecast_cols[2].metric("Naechste 7 Tage", f"{snow_data.get('forecast_snow_7days_cm', 0):.0f} cm")
+
+                    # Avalanche risk
+                    st.markdown("##### Lawinenrisiko")
+                    risk_level = snow_data.get('avalanche_risk_level', 0)
+                    risk_label = snow_data.get('avalanche_risk_label', 'Keine Daten')
+                    risk_desc = snow_data.get('avalanche_description', '')
+
+                    risk_color = get_avalanche_risk_color(
+                        __import__('snow_conditions').AvalancheRisk(risk_level)
+                    ) if risk_level > 0 else "#808080"
+
+                    st.markdown(f"<span style='background-color:{risk_color};padding:5px 10px;border-radius:5px;color:white'>{risk_label}</span>", unsafe_allow_html=True)
+                    if risk_desc:
+                        st.caption(risk_desc)
+
+                    if snow_data.get('freeride_warning'):
+                        st.warning("Freeride nicht empfohlen bei aktueller Lawinensituation!")
+
+                    # Piste conditions
+                    st.markdown("##### Pistenstatus")
+                    piste_cols = st.columns(4)
+                    piste_cols[0].metric("Status", snow_data.get('piste_status', 'unknown').title())
+                    piste_cols[1].metric("Lifte offen", f"{snow_data.get('open_lifts', 0)}/{snow_data.get('total_lifts', 0)}")
+                    piste_cols[2].metric("Pisten offen", f"{snow_data.get('open_slopes_km', 0):.0f}/{snow_data.get('total_slopes_km', 0):.0f} km")
+                    piste_cols[3].metric("Verfuegbarkeit", f"{snow_data.get('slope_availability_percent', 0):.0f}%")
+
+                    # Data quality info
+                    st.markdown("---")
+                    confidence = snow_data.get('confidence_score', 0)
+                    sources = ", ".join(snow_data.get('data_sources', []))
+                    st.caption(f"Datenqualitaet: {confidence:.0%} | Quellen: {sources}")
+
+                else:
+                    st.info("Erweiterte Schneebedingungen nicht verfuegbar. Zeige Basisdaten.")
+
+            # Basic weather data (fallback)
+            st.markdown("---")
+            st.markdown("#### Wetter & 7-Tage Vorhersage")
 
             with st.spinner("Lade Wetterdaten..."):
                 current_w, df_forecast = get_live_weather(lat, lon)
@@ -569,7 +872,7 @@ else:
                 w1, w2, w3 = st.columns(3)
                 w1.metric("Temperatur", f"{current_w['temp']} °C")
                 w2.metric("Wind", f"{current_w['wind']} km/h")
-                w3.metric("Schneehoehe", f"{current_w['snow_depth'] * 100:.1f} cm")
+                w3.metric("Schneehoehe (Basis)", f"{current_w['snow_depth'] * 100:.1f} cm")
 
                 st.write("#### 7-Tage Vorhersage")
                 st.dataframe(df_forecast, use_container_width=True)
